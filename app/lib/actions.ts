@@ -9,9 +9,7 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 const FormSchema = z.object({
   id: z.string(),
-  customerId: z.string({
-    invalid_type_error: "Please select a customer.",
-  }),
+  customerId: z.string().min(1, "Please select a customer."),
   amount: z.coerce
     .number()
     .gt(0, { message: "Please enter an amount greater than $0." }),
@@ -99,20 +97,31 @@ export async function updateInvoice(id: string, formData: FormData) {
 
 
 export async function deleteInvoice(id: string) {
-  throw new Error("Failed to Delete Invoice");
-
-  // Unreachable code block
-  await sql`DELETE FROM invoices WHERE id = ${id}`;
-  revalidatePath("/dashboard/invoices");
+  try {
+    await sql`DELETE FROM invoices WHERE id = ${id}`;
+    revalidatePath("/dashboard/invoices");
+  } catch (error) {
+    console.error(error);
+    return { message: "Database Error: Failed to Delete Invoice." };
+  }
 }
 
 
 export async function authenticate(
-  prevState: string | undefined,
+  _: string | undefined,
   formData: FormData
 ) {
+  const email = formData.get("email")?.toString();
+  const password = formData.get("password")?.toString();
+
   try {
-    await signIn("credentials", formData);
+    // call your auth/signIn helper; ensure it doesn't redirect and returns an object with 'error' when sign-in fails
+    const result = await signIn("credentials", { redirect: false, email, password });
+    // If signIn returns an error string or object, normalize to a message
+    if (result && typeof result === "object" && "error" in result && result.error) {
+      return (result as any).error;
+    }
+    return null;
   } catch (error) {
     if (error instanceof AuthError) {
       switch (error.type) {
