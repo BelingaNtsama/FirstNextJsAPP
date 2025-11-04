@@ -24,7 +24,7 @@ export default function Pagination({ totalPages }: { totalPages: number }) {
 
       <div className="inline-flex">
         <PaginationArrow
-          direction="left"$m
+          direction="left"
           href={createPageURL(currentPage - 1)}
           isDisabled={currentPage <= 1}
         />
